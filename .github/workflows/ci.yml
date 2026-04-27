@@ -35,3 +35,22 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      
+      - name: 5. deployment.yaml 파일에 이미지 주소 업데이트
+        run: |
+          # ECR 주소와 방금 만든 이미지 태그를 조합해서 변수에 담습니다.
+          NEW_IMAGE="${{ steps.login-ecr.outputs.registry }}/my-sample-app:${{ github.sha }}"
+          
+          # 리눅스의 sed 명령어를 사용해 'IMAGE_PLACEHOLDER' 글자를 진짜 주소로 바꿔치기합니다.
+          sed -i "s|IMAGE_PLACEHOLDER|$NEW_IMAGE|g" deployment.yaml
+          
+      - name: 6. 변경된 명세서를 GitHub에 다시 Push (자동화)
+        run: |
+          # 로봇(GitHub Actions)의 이름과 이메일을 설정합니다.
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 변경된 deployment.yaml 파일을 포장해서 올립니다.
+          git add deployment.yaml
+          git commit -m "🚀 자동 업데이트: 이미지 태그 변경 (${{ github.sha }})"
+          git push
