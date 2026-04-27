@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-sample-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-sample-app
+  template:
+    metadata:
+      labels:
+        app: my-sample-app
+  spec:
+    containers:
+    - name: my-sample-app
+      # 이 부분은 추후 GitHub Actions가 자동으로 ECR 주소로 바꿀 예정입니다.
+      image: IMAGE_PLACEHOLDER
+      ports:
+      - containerPort: 3000

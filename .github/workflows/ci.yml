@@ -1,0 +1,37 @@
+name: Build and Push to ECR
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. 내 코드 가져오기 (Checkout)
+        uses: actions/checkout@v3
+
+      - name: 2. AWS 자격 증명 설정 (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # 👇 여기에 아까 복사해둔 본인의 IAM 역할 ARN을 꼭 적어주세요!
+          role-to-assume: arn:aws:iam::904053119728:role/GitHubActions-ECR-Role
+          aws-region: ap-northeast-2
+
+      - name: 3. AWS ECR 로그인
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 4. Docker 이미지 빌드 및 ECR 푸시
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          # 👇 여기에 아까 만든 ECR 리포지토리 이름을 확인 후 맞춰주세요!
+          ECR_REPOSITORY: my-sample-app
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
