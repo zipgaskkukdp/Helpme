@@ -36,6 +36,8 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
       
+
+      
       - name: 5. deployment.yaml 파일에 이미지 주소 업데이트
         run: |
           # ECR 주소와 방금 만든 이미지 태그를 조합해서 변수에 담습니다.
@@ -54,3 +56,15 @@ jobs:
           git add deployment.yaml
           git commit -m "🚀 자동 업데이트: 이미지 태그 변경 (${{ github.sha }})"
           git push
+
+
+      - name: 7. AWS EKS 클러스터 연결 (Kubeconfig 업데이트)
+        run: |
+          # 로봇이 EKS에 명령을 내릴 수 있도록 인증서를 발급받는 과정입니다.
+          # 👇 여기에 본인이 생성해둔 EKS 클러스터의 정확한 이름을 적어주세요!
+          aws eks update-kubeconfig --region ap-northeast-2 --name 본인의-EKS-클러스터-이름-입력
+          
+      - name: 8. 쿠버네티스에 최신 명세서 배포하기 (kubectl apply)
+        run: |
+          # EKS 클러스터에 방금 주소가 업데이트된 명세서를 전달하여 배포를 요청합니다.
+          kubectl apply -f deployment.yaml
