@@ -5,28 +5,27 @@ on:
     branches: [ "main" ]
 
 permissions:
-  id-token: write   # OIDC 인증을 위해 필수!
-  contents: write   # 코드를 수정해서 다시 Push하기 위해 필수!
+  id-token: write
+  contents: write
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: 1. 내 코드 가져오기 (Checkout)
-        uses: actions/checkout@v3
+      - name: 1. Checkout
+        uses: actions/checkout@v4 # 최신 Node.js 24 대응 버전으로 업그레이드
 
-      - name: 2. AWS 자격 증명 설정 (OIDC)
+      - name: 2. Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          # 👇 이 Role이 AWS IAM에 실제로 존재해야 합니다!
           role-to-assume: arn:aws:iam::904053119728:role/GitHubActions-ECR-Role
           aws-region: ap-northeast-2
 
-      - name: 3. AWS ECR 로그인
+      - name: 3. Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: 4. Docker 이미지 빌드 및 ECR 푸시
+      - name: 4. Build and Push Image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: my-sample-app
@@ -35,27 +34,27 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: 5. base/deployment.yaml 파일에 이미지 주소 업데이트
+      - name: 5. Update image tag in base/deployment.yaml
         run: |
-          # 폴더가 base 안에 있으므로 경로를 base/deployment.yaml로 지정합니다.
           NEW_IMAGE="${{ steps.login-ecr.outputs.registry }}/my-sample-app:${{ github.sha }}"
           sed -i "s|IMAGE_PLACEHOLDER|$NEW_IMAGE|g" base/deployment.yaml
           
-      - name: 6. 변경된 명세서를 GitHub에 다시 Push (자동화)
+      - name: 6. Push changes to GitHub (Force)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull origin main --rebase
+          git fetch origin main
+          git reset --soft origin/main
           git add base/deployment.yaml
-          git commit -m "🚀 자동 업데이트: 이미지 태그 변경 (${{ github.sha }})"
+          git commit -m "🚀 자동 업데이트: 이미지 태그 변경 (${{ github.sha }})" || echo "No changes"
           git push origin main --force
 
-      - name: 7. AWS EKS 클러스터 연결
+      - name: 7. Connect to EKS
         run: |
-          # 👇 '본인의-EKS-클러스터-이름-입력' 대신 실제 이름을 적으세요! (예: my-eks)
+          # ⚠️ 여기에 진짜 EKS 클러스터 이름을 적으세요!
           aws eks update-kubeconfig --region ap-northeast-2 --name my-sample-eks
           
-      - name: 8. 쿠버네티스 배포 확인
+      - name: 8. Deploy to K8s
         run: |
-          # 2단계에서 배포 경로를 overlays/dev로 바꿨으므로 kustomize를 사용해 배포합니다.
+          # kustomize를 이용해 overlays/dev 환경으로 배포합니다.
           kubectl apply -k overlays/dev
