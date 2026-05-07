@@ -57,4 +57,5 @@ jobs:
       - name: 8. Deploy to K8s
         run: |
           # kustomize를 이용해 overlays/dev 환경으로 배포합니다.
+          ls -R
           kubectl apply -k overlays/dev
