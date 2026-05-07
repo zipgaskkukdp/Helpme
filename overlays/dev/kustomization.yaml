@@ -12,3 +12,4 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+namePrefix: dev-
