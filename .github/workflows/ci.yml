@@ -45,10 +45,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
+          git pull origin main --rebase
           git add base/deployment.yaml
           git commit -m "🚀 자동 업데이트: 이미지 태그 변경 (${{ github.sha }})"
-          git push
+          git push origin main --force
 
       - name: 7. AWS EKS 클러스터 연결
         run: |
