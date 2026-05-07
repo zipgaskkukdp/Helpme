@@ -11,4 +11,4 @@ spec:
   ports:
     - protocol: TCP
       port: 80           # 인터넷 사용자가 접속할 포트
-      targetPort: 80     # 컨테이너(Nginx)가 바라보고 있는 포트
+      targetPort: 3000    # 컨테이너(Nginx)가 바라보고 있는 포트
