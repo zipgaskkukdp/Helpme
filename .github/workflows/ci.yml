@@ -45,6 +45,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
           git add base/deployment.yaml
           git commit -m "🚀 자동 업데이트: 이미지 태그 변경 (${{ github.sha }})"
           git push
