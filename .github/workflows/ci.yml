@@ -5,8 +5,8 @@ on:
     branches: [ "main" ]
 
 permissions:
-  id-token: write
-  contents: write
+  id-token: write   # OIDC 인증을 위해 필수!
+  contents: write   # 코드를 수정해서 다시 Push하기 위해 필수!
 
 jobs:
   build-and-push:
@@ -18,7 +18,7 @@ jobs:
       - name: 2. AWS 자격 증명 설정 (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          # 👇 여기에 아까 복사해둔 본인의 IAM 역할 ARN을 꼭 적어주세요!
+          # 👇 이 Role이 AWS IAM에 실제로 존재해야 합니다!
           role-to-assume: arn:aws:iam::904053119728:role/GitHubActions-ECR-Role
           aws-region: ap-northeast-2
 
@@ -29,42 +29,32 @@ jobs:
       - name: 4. Docker 이미지 빌드 및 ECR 푸시
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          # 👇 여기에 아까 만든 ECR 리포지토리 이름을 확인 후 맞춰주세요!
           ECR_REPOSITORY: my-sample-app
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-      
 
-      
-      - name: 5. deployment.yaml 파일에 이미지 주소 업데이트
+      - name: 5. base/deployment.yaml 파일에 이미지 주소 업데이트
         run: |
-          # ECR 주소와 방금 만든 이미지 태그를 조합해서 변수에 담습니다.
+          # 폴더가 base 안에 있으므로 경로를 base/deployment.yaml로 지정합니다.
           NEW_IMAGE="${{ steps.login-ecr.outputs.registry }}/my-sample-app:${{ github.sha }}"
-          
-          # 리눅스의 sed 명령어를 사용해 'IMAGE_PLACEHOLDER' 글자를 진짜 주소로 바꿔치기합니다.
-          sed -i "s|IMAGE_PLACEHOLDER|$NEW_IMAGE|g" deployment.yaml
+          sed -i "s|IMAGE_PLACEHOLDER|$NEW_IMAGE|g" base/deployment.yaml
           
       - name: 6. 변경된 명세서를 GitHub에 다시 Push (자동화)
         run: |
-          # 로봇(GitHub Actions)의 이름과 이메일을 설정합니다.
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 변경된 deployment.yaml 파일을 포장해서 올립니다.
-          git add deployment.yaml
+          git add base/deployment.yaml
           git commit -m "🚀 자동 업데이트: 이미지 태그 변경 (${{ github.sha }})"
           git push
 
-
-      - name: 7. AWS EKS 클러스터 연결 (Kubeconfig 업데이트)
+      - name: 7. AWS EKS 클러스터 연결
         run: |
-          # 로봇이 EKS에 명령을 내릴 수 있도록 인증서를 발급받는 과정입니다.
-          # 👇 여기에 본인이 생성해둔 EKS 클러스터의 정확한 이름을 적어주세요!
-          aws eks update-kubeconfig --region ap-northeast-2 --name 본인의-EKS-클러스터-이름-입력
+          # 👇 '본인의-EKS-클러스터-이름-입력' 대신 실제 이름을 적으세요! (예: my-eks)
+          aws eks update-kubeconfig --region ap-northeast-2 --name my-sample-eks
           
-      - name: 8. 쿠버네티스에 최신 명세서 배포하기 (kubectl apply)
+      - name: 8. 쿠버네티스 배포 확인
         run: |
-          # EKS 클러스터에 방금 주소가 업데이트된 명세서를 전달하여 배포를 요청합니다.
-          kubectl apply -f deployment.yaml
+          # 2단계에서 배포 경로를 overlays/dev로 바꿨으므로 kustomize를 사용해 배포합니다.
+          kubectl apply -k overlays/dev
