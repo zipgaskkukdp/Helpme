@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: nginx-container
-        image: IMAGE_PLACEHOLDER
+        image: 904053119728.dkr.ecr.ap-northeast-2.amazonaws.com/my-sample-app:5112382dbfaae1ef92b8cb65d00f4bd837b22f0e
         ports:
         - containerPort: 3000
