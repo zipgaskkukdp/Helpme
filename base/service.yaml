@@ -5,7 +5,7 @@ metadata:
   labels:
     app: my-sample-app
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
     app: my-nginx   # deployment.yaml의 파드 라벨과 똑같아야 연결됩니다!
   ports:

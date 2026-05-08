@@ -6,3 +6,5 @@ node_modules/
 .terraform.lock.hcl
 *.tfstate
 *.tfstate.*
+*.exe
+*.zip
