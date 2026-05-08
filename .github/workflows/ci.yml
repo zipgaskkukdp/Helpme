@@ -11,9 +11,11 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Node.js 경고 무시
     steps:
       - name: 1. Checkout
-        uses: actions/checkout@v4 # 최신 Node.js 24 대응 버전으로 업그레이드
+        uses: actions/checkout@v4 
 
       - name: 2. Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -51,11 +53,8 @@ jobs:
 
       - name: 7. Connect to EKS
         run: |
-          # ⚠️ 여기에 진짜 EKS 클러스터 이름을 적으세요!
           aws eks update-kubeconfig --region ap-northeast-2 --name my-sample-eks
           
       - name: 8. Deploy to K8s
         run: |
-          # kustomize를 이용해 overlays/dev 환경으로 배포합니다.
-          ls -R
           kubectl apply -k overlays/dev
